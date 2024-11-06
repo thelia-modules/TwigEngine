@@ -12,26 +12,21 @@
 
 namespace TwigEngine\Extension;
 
-use Symfony\Component\Form\FormView;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
-use TwigEngine\Service\FormService;
+use TwigEngine\Service\DataAccess\ProductSaleElementsAccessService;
 
-class FormExtension extends AbstractExtension
+class PSEExtension extends AbstractExtension
 {
     public function __construct(
-        private readonly FormService $formService
-    ) {}
+        private readonly ProductSaleElementsAccessService $pseAccessService
+    ) {
+    }
 
     public function getFunctions(): array
     {
         return [
-            new TwigFunction('getForm', [$this, 'getForm'], ['is_safe' => ['html']]),
+            new TwigFunction('psesByProduct', [$this->pseAccessService, 'psesByProduct']),
         ];
-    }
-
-    public function getForm(string $name, array $data = []): FormView
-    {
-        return $this->formService->getFormViewByName($name, $data);
     }
 }

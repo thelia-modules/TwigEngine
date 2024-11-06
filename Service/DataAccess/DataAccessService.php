@@ -12,60 +12,25 @@
 
 namespace TwigEngine\Service\DataAccess;
 
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Symfony\Component\Routing\RouterInterface;
-use TwigEngine\Service\ApiPlatformMetadataService;
+use ApiPlatform\Metadata\Exception\ResourceClassNotFoundException;
+use Symfony\Component\Serializer\Exception\ExceptionInterface;
+use TwigEngine\Service\API\ResourceService;
 
-readonly class DataAccessService
+class DataAccessService
 {
     public function __construct(
-        private RouterInterface $router,
-        private ApiPlatformMetadataService $apiPlatformMetadataService,
-        private LoopDataAccessService $loopDataAccessService,
+        private readonly LoopDataAccessService $loopDataAccessService,
+        private readonly ResourceService       $resourceService
     ) {
     }
 
+    /**
+     * @throws ExceptionInterface
+     * @throws ResourceClassNotFoundException
+     */
     public function resources(string $path, array $parameters = []): object|array
     {
-        $route = $this->router->match($path);
-
-        $resourceClass = $route['_api_resource_class'];
-        $routeName = $route['_route'];
-
-        $operation = $this->apiPlatformMetadataService->getOperation(
-            $resourceClass,
-            $routeName
-        );
-        if ($operation === null) {
-            throw new \RuntimeException('Operation not found');
-        }
-
-        $context = [
-            'operation' => $operation,
-            'uri_variables' => [],
-            'resource_class' => $resourceClass,
-            'filters' => $parameters,
-            'groups' => $operation->getNormalizationContext()['groups'] ?? null,
-        ];
-
-        if (
-            !$this->apiPlatformMetadataService->canUserAccessResource(
-                $resourceClass,
-                $path,
-                Request::METHOD_GET,
-                $operation,
-                $context
-            )
-        ) {
-            throw new AccessDeniedHttpException('Access Denied');
-        }
-
-        return $this->apiPlatformMetadataService->getProvider($operation)->provide(
-            $operation,
-            [],
-            $context
-        );
+        return $this->resourceService->resources($path, $parameters);
     }
 
     /** @deprecated use new data access layer */
