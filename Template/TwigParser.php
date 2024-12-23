@@ -50,6 +50,7 @@ class TwigParser implements ParserInterface
         $this->loader->addPath($this->getTemplateDefinition()?->getAbsolutePath());
 
         if (!str_ends_with($realTemplateName, '.'.$this->getFileExtension())) {
+            $realTemplateName = (string) pathinfo($realTemplateName, \PATHINFO_FILENAME);
             $realTemplateName .= '.'.$this->getFileExtension();
         }
 
