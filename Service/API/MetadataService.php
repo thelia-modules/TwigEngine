@@ -88,7 +88,7 @@ readonly class MetadataService
         if (null === $roles) {
             return true;
         }
-        $user = $this->securityContext->getAdminUser() ?? $this->securityContext->getCustomerUser();
+        $user = $this->isAdminRoute($path) ? $this->securityContext->getAdminUser() : $this->securityContext->getCustomerUser();
         $userRoles = $user ? $user->getRoles() : [];
 
         if (!empty(array_intersect($userRoles, $roles))) {
@@ -96,5 +96,10 @@ readonly class MetadataService
         }
 
         return false;
+    }
+
+    private function isAdminRoute(string $path): bool
+    {
+        return str_starts_with($path, '/api/admin/');
     }
 }
