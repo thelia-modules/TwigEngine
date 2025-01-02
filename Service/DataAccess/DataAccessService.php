@@ -28,7 +28,7 @@ class DataAccessService
      * @throws ExceptionInterface
      * @throws ResourceClassNotFoundException
      */
-    public function resources(string $path, array $parameters = []): object|array
+    public function resources(string $path, array $parameters = []): object|array|null
     {
         return $this->resourceService->resources($path, $parameters);
     }

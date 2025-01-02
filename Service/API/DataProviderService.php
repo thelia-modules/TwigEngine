@@ -25,7 +25,7 @@ readonly class DataProviderService
         Operation $operation,
         array $uriVariables,
         array $context
-    ): object|array {
+    ): object|array|null {
         return $this->metadataService->getProvider($operation)->provide($operation, $uriVariables, $context);
     }
 }

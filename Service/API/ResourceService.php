@@ -35,7 +35,7 @@ readonly class ResourceService
     ) {
     }
 
-    public function resources(string $path, array $parameters = []): object|array
+    public function resources(string $path, array $parameters = []): object|array|null
     {
         $apiRequest = $this->requestBuilder->createApiRequest($this->requestStack, $path);
         $route = $this->routeMatcher->matchRoute($this->router, $apiRequest);

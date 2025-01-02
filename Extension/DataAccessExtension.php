@@ -40,7 +40,7 @@ class DataAccessExtension extends AbstractExtension
      * @throws \JsonException
      * @throws InvalidArgumentException
      */
-    public function resources(string $path, array $params = []): array|object
+    public function resources(string $path, array $params = []): array|object|null
     {
         return $this->dataAccessService->resources($path, $params);
     }
