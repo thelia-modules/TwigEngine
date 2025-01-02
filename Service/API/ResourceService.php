@@ -49,6 +49,9 @@ readonly class ResourceService
         $this->accessChecker->checkUserAccess($resourceClass, $path, $operation, $context);
 
         $result = $this->dataProvider->fetchData($operation, $uriVariables, $context);
+        if ($result === null) {
+            return null;
+        }
         $normalizedData = $this->normalizer->normalizeData($result, $context);
         if($this->isTranslatableResult($result)) {
             // can't use Serializer in this use case, so need to manually add publicUrl
