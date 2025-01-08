@@ -23,6 +23,8 @@ readonly class ContextBuilderService
         array $uriVariables,
         array $parameters
     ): array {
+        $parameters = $this->convertParameterKeysToArrays($parameters);
+
         return [
             'path_info' => $path,
             'operation' => $operation,
@@ -31,5 +33,48 @@ readonly class ContextBuilderService
             'filters' => $parameters,
             'groups' => $operation->getNormalizationContext()['groups'] ?? null,
         ];
+    }
+
+    private function convertParameterKeysToArrays(array $parameters): array
+    {
+        $result = [];
+        foreach ($parameters as $key => $value) {
+            $this->mergeNestedArray($result, $this->stringToArray($key, $value));
+        }
+
+        return $result;
+    }
+
+    private function mergeNestedArray(array &$target, array $source): void
+    {
+        foreach ($source as $key => $value) {
+            if (\is_array($value) && isset($target[$key]) && \is_array($target[$key])) {
+                $this->mergeNestedArray($target[$key], $value);
+            } else {
+                $target[$key] = $value;
+            }
+        }
+    }
+
+    private function stringToArray(string $string, $value = null): array
+    {
+        $keys = preg_split('/\]\[|\[|\]/', $string, -1, \PREG_SPLIT_NO_EMPTY);
+        if (empty($keys)) {
+            return [$string => $value];
+        }
+
+        $result = [];
+        $ref = &$result;
+
+        foreach ($keys as $key) {
+            if (!isset($ref[$key])) {
+                $ref[$key] = [];
+            }
+            $ref = &$ref[$key];
+        }
+
+        $ref = $value;
+
+        return $result;
     }
 }
