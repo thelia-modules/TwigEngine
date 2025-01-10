@@ -38,8 +38,14 @@ class OperationProviderService
      */
     public function getUriVariables(array $route, Operation $operation, string $resourceClass): array
     {
-        $id = isset($route['id']) ? ['id' => $route['id']] : [];
-
-        return $this->getOperationUriVariables($operation, $id, $resourceClass);
+        $uriVariables = $operation->getUriVariables() ?? [];
+        $identifiers = [];
+        foreach($uriVariables as $parameterName => $uriVariableDefinition) {
+            if (!isset($route[$parameterName]) && !isset($route['id'])) {
+                throw new InvalidIdentifierException(sprintf('Parameter "%s" not found, check the identifiers configuration.', $parameterName));
+            }
+            $identifiers[$parameterName] = $route[$parameterName] ?? $route['id'];
+        }
+        return $this->getOperationUriVariables($operation, $identifiers, $resourceClass);
     }
 }
