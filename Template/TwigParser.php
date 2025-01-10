@@ -21,6 +21,7 @@ use Thelia\Core\Template\ParserTemplateTrait;
 use Thelia\Core\Template\TemplateDefinition;
 use Thelia\Model\Lang;
 use Twig\Environment;
+use Twig\Error\LoaderError;
 use Twig\Loader\FilesystemLoader;
 
 /**
@@ -32,6 +33,8 @@ use Twig\Loader\FilesystemLoader;
 class TwigParser implements ParserInterface
 {
     use ParserTemplateTrait;
+
+    public const FALLBACK_DEFAULT_THEME_NAME = 'default';
 
     private array $templateDirectories = [];
 
@@ -47,8 +50,6 @@ class TwigParser implements ParserInterface
 
     public function render($realTemplateName, array $parameters = [], $compressOutput = true): string
     {
-        $this->loader->addPath($this->getTemplateDefinition()?->getAbsolutePath());
-
         if (!str_ends_with($realTemplateName, '.'.$this->getFileExtension())) {
             $realTemplateName = (string) pathinfo($realTemplateName, \PATHINFO_FILENAME);
             $realTemplateName .= '.'.$this->getFileExtension();
@@ -108,10 +109,73 @@ class TwigParser implements ParserInterface
         return $this->twig->render($templateText, $parameters);
     }
 
+    /**
+     * @throws LoaderError
+     * @throws \Exception
+     */
     public function setTemplateDefinition(TemplateDefinition|string $templateDefinition, $fallbackToDefaultTemplate = false): void
     {
+        if (\is_string($templateDefinition)) {
+            $templateDefinition = new TemplateDefinition($templateDefinition, TemplateDefinition::FRONT_OFFICE);
+        }
+
         $this->templateDefinition = $templateDefinition;
         $this->fallbackToDefaultTemplate = $fallbackToDefaultTemplate;
+        $type = $templateDefinition->getType();
+
+        $this->addCurrentTemplateWithParent($templateDefinition);
+        $this->addModulesTemplatesDirectories($templateDefinition, $type);
+        $this->addFallbackDefaultModulesTemplatesDirectories($type, $fallbackToDefaultTemplate);
+    }
+
+    /**
+     * @throws LoaderError
+     */
+    private function addCurrentTemplateWithParent(TemplateDefinition $templateDefinition): void
+    {
+        $this->loader->addPath($templateDefinition->getAbsolutePath());
+        foreach ($templateDefinition->getParentList() as $parentTemplateDefinition) {
+            $this->loader->addPath($parentTemplateDefinition->getAbsolutePath());
+        }
+    }
+
+    /**
+     * @throws LoaderError
+     */
+    private function addModulesTemplatesDirectories(
+        TemplateDefinition $templateDefinition,
+        int $type
+    ): void {
+        $templateDefinitionsWithParent = ['' => $templateDefinition] + $templateDefinition->getParentList();
+        foreach ($templateDefinitionsWithParent as $templateDefinitionWithParent) {
+            if (!isset($this->templateDirectories[$type][$templateDefinitionWithParent->getName()])) {
+                continue;
+            }
+            foreach ($this->templateDirectories[$type][$templateDefinitionWithParent->getName()] as $directory) {
+                $this->loader->addPath($directory);
+            }
+        }
+    }
+
+    /**
+     * @throws LoaderError
+     */
+    private function addFallbackDefaultModulesTemplatesDirectories(
+        int $type,
+        bool $fallbackToDefaultTemplate
+    ): void {
+        if (false === $fallbackToDefaultTemplate) {
+            return;
+        }
+        if (!isset($this->templateDirectories[$type][self::FALLBACK_DEFAULT_THEME_NAME])) {
+            return;
+        }
+        foreach ($this->templateDirectories[$type][self::FALLBACK_DEFAULT_THEME_NAME] as $key => $directory) {
+            if ([] !== $this->loader->getPaths($key)) {
+                continue;
+            }
+            $this->loader->addPath($directory);
+        }
     }
 
     public function assign($variable, $value = null): void
