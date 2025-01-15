@@ -14,24 +14,23 @@ namespace TwigEngine\Service\API;
 
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
-use Thelia\Api\Resource\AbstractTranslatableResource;
 use Thelia\Api\Resource\TranslatableResourceInterface;
 use Thelia\Service\Model\LangService;
 
 readonly class ResourceService
 {
     public function __construct(
-        private RequestBuilderService    $requestBuilder,
-        private RouteMatcherService      $routeMatcher,
+        private RequestBuilderService $requestBuilder,
+        private RouteMatcherService $routeMatcher,
         private OperationProviderService $operationProvider,
-        private ContextBuilderService    $contextBuilder,
-        private AccessCheckerService     $accessChecker,
-        private DataProviderService      $dataProvider,
-        private NormalizerService        $normalizer,
-        private RouterInterface          $router,
-        private MetadataService          $metadataService,
-        private RequestStack             $requestStack,
-        private LangService              $localeService,
+        private ContextBuilderService $contextBuilder,
+        private AccessCheckerService $accessChecker,
+        private DataProviderService $dataProvider,
+        private NormalizerService $normalizer,
+        private RouterInterface $router,
+        private MetadataService $metadataService,
+        private RequestStack $requestStack,
+        private LangService $localeService,
     ) {
     }
 
@@ -43,7 +42,7 @@ readonly class ResourceService
         $operation = $this->operationProvider->getOperation($this->metadataService, $route);
         $resourceClass = $route['_api_resource_class'];
         $uriVariables = $this->operationProvider->getUriVariables($route, $operation, $resourceClass);
-
+        $parameters = $this->manageLocale($parameters);
         $context = $this->contextBuilder->buildContext($path, $operation, $resourceClass, $uriVariables, $parameters);
 
         $this->accessChecker->checkUserAccess($resourceClass, $path, $operation, $context);
@@ -53,11 +52,22 @@ readonly class ResourceService
             return null;
         }
         $normalizedData = $this->normalizer->normalizeData($result, $context);
-        if($this->isTranslatableResult($result)) {
+        if ($this->isTranslatableResult($result)) {
             // can't use Serializer in this use case, so need to manually add publicUrl
             $normalizedData = $this->addPublicUrl($result, $normalizedData, $currentLocale);
         }
+
         return $this->formatI18ns($normalizedData, $currentLocale);
+    }
+
+    private function manageLocale(array $parameters): array
+    {
+        if (isset($parameters['locale'])) {
+            return $parameters;
+        }
+        $locale = $this->localeService->getLocale();
+        $parameters['locale'] = $locale;
+        return $parameters;
     }
 
     private function formatI18ns(array $datas, string $locale = null): array
@@ -79,9 +89,10 @@ readonly class ResourceService
 
     private function isTranslatableResult(mixed $result): bool
     {
-        if(!\is_array($result)) {
+        if (!\is_array($result)) {
             return is_a($result, TranslatableResourceInterface::class);
         }
+
         return isset($result[0]) && is_a($result[0], TranslatableResourceInterface::class);
     }
 
@@ -109,5 +120,4 @@ readonly class ResourceService
 
         return $entry;
     }
-
 }
