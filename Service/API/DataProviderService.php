@@ -13,11 +13,14 @@
 namespace TwigEngine\Service\API;
 
 use ApiPlatform\Metadata\Operation;
+use ApiPlatform\State\CallableProvider;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 readonly class DataProviderService
 {
     public function __construct(
-        private MetadataService $metadataService
+        #[Autowire(service: 'api_platform.state_provider.locator')]
+        private CallableProvider $callableProvider,
     ) {
     }
 
@@ -26,6 +29,10 @@ readonly class DataProviderService
         array $uriVariables,
         array $context
     ): object|array|null {
-        return $this->metadataService->getProvider($operation)->provide($operation, $uriVariables, $context);
+        return $this->callableProvider->provide(
+            $operation,
+            $uriVariables,
+            $context
+        );
     }
 }
