@@ -20,8 +20,8 @@ readonly class NormalizerService
     {
     }
 
-    public function normalizeData(object|array $data, array $context): array
+    public function normalizeData(object|array $data, array $context, ?string $format = null): array
     {
-        return $this->normalizer->normalize($data, null, $context);
+        return $this->normalizer->normalize($data, $format, $context);
     }
 }
