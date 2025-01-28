@@ -34,7 +34,7 @@ readonly class ResourceService
     ) {
     }
 
-    public function resources(string $path, array $parameters = []): object|array|null
+    public function resources(string $path, array $parameters = [],?string $format = null): object|array|null
     {
         $apiRequest = $this->requestBuilder->createApiRequest($this->requestStack, $path);
         $route = $this->routeMatcher->matchRoute($this->router, $apiRequest);
@@ -51,10 +51,15 @@ readonly class ResourceService
         if ($result === null) {
             return null;
         }
-        $normalizedData = $this->normalizer->normalizeData($result, $context);
+        $normalizedData = $this->normalizer->normalizeData($result, $context, $format);
         if ($this->isTranslatableResult($result)) {
             // can't use Serializer in this use case, so need to manually add publicUrl
-            $normalizedData = $this->addPublicUrl($result, $normalizedData, $currentLocale);
+            if ($format === null){
+                $normalizedData = $this->addPublicUrl($result, $normalizedData, $currentLocale);
+            }
+            if ($format === 'jsonld'){
+                $normalizedData = $this->addPublicUrlWithJsonLd($result, $normalizedData, $currentLocale);
+            }
         }
 
         return $this->formatI18ns($normalizedData, $currentLocale);
@@ -94,6 +99,21 @@ readonly class ResourceService
         }
 
         return isset($result[0]) && is_a($result[0], TranslatableResourceInterface::class);
+    }
+
+    private function addPublicUrlWithJsonLd(mixed $result, array $normalizedData, string $currentLocale): array
+    {
+        $isMultidimensional = (isset($normalizedData['hydra:totalItems']));
+
+        if (!$isMultidimensional) {
+            return $this->addUrlToEntry($result, $normalizedData, $currentLocale);
+        }
+
+        foreach ($normalizedData['hydra:member'] as $key => $entry) {
+            $normalizedData['hydra:member'][$key] = $this->addUrlToEntry($result[$key], $entry, $currentLocale);
+        }
+
+        return $normalizedData;
     }
 
     private function addPublicUrl(mixed $result, array $normalizedData, string $currentLocale): array
