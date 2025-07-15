@@ -17,7 +17,10 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Resource\Factory\ResourceMetadataCollectionFactoryInterface;
 use ApiPlatform\Metadata\ResourceAccessCheckerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Security\Core\Authentication\AuthenticationTrustResolverInterface;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 use Symfony\Component\Security\Http\AccessMapInterface;
 use Thelia\Core\Security\SecurityContext;
 
@@ -28,8 +31,12 @@ readonly class MetadataService
         #[Autowire(service: 'security.access_map')]
         private AccessMapInterface $accessMap,
         private SecurityContext $securityContext,
-        #[Autowire(service: 'api_platform.security.resource_access_checker')]
-        private ResourceAccessCheckerInterface $resourceAccessChecker,
+        #[Autowire(service: 'api_platform.security.expression_language')]
+        private readonly ?ExpressionLanguage $expressionLanguage = null,
+        #[Autowire(service: 'security.authentication.trust_resolver')]
+        private readonly ?AuthenticationTrustResolverInterface $authenticationTrustResolver = null,
+        #[Autowire(service: 'security.authorization_checker')]
+        private readonly ?AuthorizationCheckerInterface $authorizationChecker = null
     ) {
     }
 
@@ -60,21 +67,29 @@ readonly class MetadataService
         Operation $operation,
         array $context
     ): bool {
-        $isGranted = $operation->getSecurity();
-
-        if (null !== $isGranted && null === $this->resourceAccessChecker) {
-            throw new \LogicException('Cannot check security expression when SecurityBundle is not installed. Try running "composer require symfony/security-bundle".');
+        $expression = $operation->getSecurity();
+        if (null !== $expression && null === $this->authenticationTrustResolver) {
+            throw new \LogicException('The "symfony/security" library must be installed to use the "security" attribute.');
         }
-        if ($isGranted !== null) {
-            return $this->resourceAccessChecker->isGranted($resourceClass, $isGranted,
-                $context['extra_variables'] ?? []);
+        if (null === $this->expressionLanguage) {
+            throw new \LogicException('The "symfony/expression-language" library must be installed to use the "security" attribute.');
+        }
+        $user = $this->isAdminRoute($path)
+            ? $this->securityContext->getAdminUser()
+            : $this->securityContext->getCustomerUser();
+
+        if ($expression !== null) {
+            $variables = array_merge($context['extra_variables'] ?? [], [
+                'user' => $user,
+                'auth_checker' => $this->authorizationChecker, // needed for the is_granted expression function
+            ]);
+            return (bool) $this->expressionLanguage->evaluate($expression, $variables);
         }
         $request = Request::create($path, $method);
         [$roles, $channel] = $this->accessMap->getPatterns($request);
         if (null === $roles) {
             return true;
         }
-        $user      = $this->isAdminRoute($path) ? $this->securityContext->getAdminUser() : $this->securityContext->getCustomerUser();
         $userRoles = $user ? $user->getRoles() : [];
 
         if (!empty(array_intersect($userRoles, $roles))) {

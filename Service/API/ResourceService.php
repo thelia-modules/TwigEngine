@@ -12,6 +12,7 @@
 
 namespace TwigEngine\Service\API;
 
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
 use Thelia\Api\Resource\TranslatableResourceInterface;
@@ -45,11 +46,15 @@ readonly class ResourceService
         $parameters = $this->manageLocale($parameters);
         $context = $this->contextBuilder->buildContext($path, $operation, $resourceClass, $uriVariables, $parameters);
 
-        $this->accessChecker->checkUserAccess($resourceClass, $path, $operation, $context);
-
         $result = $this->dataProvider->fetchData($operation, $uriVariables, $context);
         if ($result === null) {
             return null;
+        }
+        try {
+            $context['extra_variables']['object'] = $result;
+            $this->accessChecker->checkUserAccess($resourceClass, $path, $operation, $context);
+        } catch (\Exception $e) {
+            dd($path, $context, $e);
         }
         $normalizedData = $this->normalizer->normalizeData($result, $context, $format);
         if ($this->isTranslatableResult($result)) {
