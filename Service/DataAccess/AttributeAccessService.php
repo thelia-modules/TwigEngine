@@ -31,6 +31,7 @@ use Thelia\Model\Country;
 use Thelia\Model\CountryQuery;
 use Thelia\Model\CurrencyQuery;
 use Thelia\Model\FolderQuery;
+use Thelia\Model\Map\ProductI18nTableMap;
 use Thelia\Model\ProductQuery;
 use Thelia\Model\State;
 use Thelia\Model\Tools\ModelCriteriaTools;
@@ -65,11 +66,11 @@ class AttributeAccessService
         if (null === $productId = $this->getRequestParam('product_id')) {
             return '';
         }
-
+        $search = ProductQuery::create();
         return $this->dataAccessWithI18n(
-            'Product',
-            $attributeName,
-            ProductQuery::create()->filterByPrimaryKey($productId)
+            objectLabel: 'Product',
+            attributeName: $attributeName,
+            search: $search->filterByPrimaryKey($productId),
         );
     }
 
@@ -336,7 +337,7 @@ class AttributeAccessService
 
         $data = self::$dataAccessCache[$cacheKey] ?? null;
 
-        if ($data === null && $foreignTable !== null) {
+        if ($data === null) {
             $lang = $this->getSession()->getLang()->getId();
 
             ModelCriteriaTools::getI18n(
