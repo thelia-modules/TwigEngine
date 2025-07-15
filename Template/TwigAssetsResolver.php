@@ -85,7 +85,7 @@ class TwigAssetsResolver implements AssetResolverInterface
         $templateName,
         $fileName,
         ParserInterface $parserInterface
-    ) {
+    ): mixed {
         $tpl = $parserInterface->getTemplateDefinition();
 
         return $this->resolveAssetSourcePathAndTemplate(
@@ -103,7 +103,7 @@ class TwigAssetsResolver implements AssetResolverInterface
         $fileName,
         ParserInterface $parserInterface,
         TemplateDefinition &$templateDefinition
-    ) {
+    ): mixed {
         // A simple cache for the path list, to gain some performances
         static $cache = [];
 
