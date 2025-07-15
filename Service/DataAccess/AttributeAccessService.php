@@ -336,7 +336,7 @@ class AttributeAccessService
 
         $data = self::$dataAccessCache[$cacheKey] ?? null;
 
-        if ($data === null) {
+        if ($data === null && $foreignTable !== null) {
             $lang = $this->getSession()->getLang()->getId();
 
             ModelCriteriaTools::getI18n(
