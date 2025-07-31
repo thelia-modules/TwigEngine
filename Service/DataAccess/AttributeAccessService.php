@@ -229,18 +229,36 @@ class AttributeAccessService
                 }
                 $result = $countAllItem;
                 break;
+            case 'taxed_postage':
+                $result = $cart->getTaxedPostage();
+                break;
+            case 'postage':
+                $result = $cart->getPostage();
+                break;
             case 'total_price':
             case 'total_price_with_discount':
-                $result = $cart->getTotalAmount(true, $taxCountry, $taxState);
+                $result = $cart->getTotalAmount(true, $taxCountry, $taxState, true);
                 break;
             case 'total_price_without_discount':
+                $result = $cart->getTotalAmount(false, $taxCountry, $taxState, true);
+                break;
+            case 'total_price_without_postage':
+                $result = $cart->getTotalAmount(true, $taxCountry, $taxState);
+                break;
+            case 'raw_total_price':
                 $result = $cart->getTotalAmount(false, $taxCountry, $taxState);
                 break;
             case 'total_taxed_price':
             case 'total_taxed_price_with_discount':
-                $result = $cart->getTaxedAmount($taxCountry, true, $taxState);
+                $result = $cart->getTaxedAmount($taxCountry, true, $taxState, true);
                 break;
             case 'total_taxed_price_without_discount':
+                $result = $cart->getTaxedAmount($taxCountry, false, $taxState, true);
+                break;
+            case 'total_taxed_price_without_postage':
+                $result = $cart->getTaxedAmount($taxCountry, true, $taxState);
+                break;
+            case 'raw_taxed_total_price':
                 $result = $cart->getTaxedAmount($taxCountry, false, $taxState);
                 break;
             case 'is_virtual':
@@ -249,10 +267,13 @@ class AttributeAccessService
                 break;
             case 'total_vat':
             case 'total_tax_amount':
-                $result = $cart->getTotalVAT($taxCountry, $taxState);
+                $result = $cart->getTotalVAT($taxCountry, $taxState, true, true);
                 break;
             case 'total_tax_amount_without_discount':
-                $result = $cart->getTotalVAT($taxCountry, $taxState, false);
+                $result = $cart->getTotalVAT($taxCountry, $taxState, false, true);
+                break;
+            case 'raw_total_tax_amount':
+                $result = $cart->getTotalVAT($taxCountry, $taxState, false, false);
                 break;
             case 'discount_tax_amount':
                 $result = $cart->getDiscountVAT($taxCountry, $taxState);
@@ -267,7 +288,8 @@ class AttributeAccessService
 
     public function attributeCoupon(string $attributeName): mixed
     {
-        $order = $this->getSession()->getOrder();
+        /** @var Cart $cart */
+        $cart = $this->getSession()->getSessionCart();
 
         switch ($attributeName) {
             case 'has_coupons':
@@ -283,7 +305,7 @@ class AttributeAccessService
 
                 return $orderCoupons;
             case 'is_delivery_free':
-                return $this->couponManager->isCouponRemovingPostage($order);
+                return $this->couponManager->isCouponRemovingPostage($cart);
         }
         throw new \InvalidArgumentException(sprintf("%s has no '%s' attribute", 'Order', $attributeName));
     }
