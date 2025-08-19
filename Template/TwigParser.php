@@ -21,6 +21,7 @@ use Thelia\Core\Template\ParserInterface;
 use Thelia\Core\Template\ParserTemplateTrait;
 use Thelia\Core\Template\TemplateDefinition;
 use Thelia\Model\Lang;
+use Thelia\Service\Model\LangService;
 use Twig\Environment;
 use Twig\Error\LoaderError;
 use Twig\Loader\FilesystemLoader;
@@ -44,6 +45,7 @@ class TwigParser implements ParserInterface
         #[Autowire(service: 'twig.loader.native_filesystem')]
         private readonly FilesystemLoader $loader,
         private readonly ParserContext $parserContext,
+        private readonly LangService $langService,
         private readonly string $env = 'prod',
         private readonly bool $debug = false
     ) {
@@ -56,25 +58,17 @@ class TwigParser implements ParserInterface
             $realTemplateName .= '.'.$this->getFileExtension();
         }
 
-        $request = $this->getRequest();
-        $session = null;
-        if (null === $request) {
-            $lang = Lang::getDefaultLanguage();
-        } else {
-            /** @var Session $session $lang */
-            $session = $request->getSession();
-            $lang = $session->getLang();
-        }
+        $lang = $this->langService->getLang();
 
         $parameters = array_merge($parameters, [
             'locale' => $lang->getLocale(),
             'lang_code' => $lang->getCode(),
             'lang_id' => $lang->getId(),
-            'current_url' => $request?->getUri(),
+            'current_url' => $this->getRequest()?->getUri(),
             'app' => (object) [
                 'environment' => $this->env,
                 'request' => $this->getRequest(),
-                'session' => $session,
+                'session' => $this->getRequest()?->getSession(),
                 'debug' => $this->debug,
             ],
         ]);
