@@ -21,7 +21,7 @@ use Thelia\Core\Template\ParserInterface;
 use Thelia\Core\Template\ParserTemplateTrait;
 use Thelia\Core\Template\TemplateDefinition;
 use Thelia\Model\Lang;
-use Thelia\Service\Model\LangService;
+use Thelia\Domain\Localization\LangService;
 use Twig\Environment;
 use Twig\Error\LoaderError;
 use Twig\Loader\FilesystemLoader;
