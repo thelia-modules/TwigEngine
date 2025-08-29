@@ -20,8 +20,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Thelia\Core\HttpFoundation\Session\Session;
 use Thelia\Core\Security\SecurityContext;
-use Thelia\Domain\Promotion\Coupon\CouponManager;
+use Thelia\Domain\Promotion\Coupon\Service\CouponManager;
 use Thelia\Domain\Promotion\Coupon\Type\CouponInterface;
+use Thelia\Domain\Taxation\TaxEngine\TaxEngine;
 use Thelia\Model\Base\BrandQuery;
 use Thelia\Model\Cart;
 use Thelia\Model\CategoryQuery;
@@ -34,7 +35,6 @@ use Thelia\Model\FolderQuery;
 use Thelia\Model\ProductQuery;
 use Thelia\Model\State;
 use Thelia\Model\Tools\ModelCriteriaTools;
-use Thelia\Domain\Taxation\TaxEngine\TaxEngine;
 use Thelia\Tools\DateTimeFormat;
 
 class AttributeAccessService

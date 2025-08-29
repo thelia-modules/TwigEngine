@@ -14,14 +14,11 @@ namespace TwigEngine\Template;
 
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Thelia\Core\HttpFoundation\Request;
-use Thelia\Core\HttpFoundation\Session\Session;
 use Thelia\Core\Template\ParserContext;
 use Thelia\Core\Template\ParserInterface;
 use Thelia\Core\Template\ParserTemplateTrait;
 use Thelia\Core\Template\TemplateDefinition;
-use Thelia\Model\Lang;
-use Thelia\Domain\Localization\LangService;
+use Thelia\Domain\Localization\Service\LangService;
 use Twig\Environment;
 use Twig\Error\LoaderError;
 use Twig\Loader\FilesystemLoader;
@@ -61,9 +58,9 @@ class TwigParser implements ParserInterface
         $lang = $this->langService->getLang();
 
         $parameters = array_merge($parameters, [
-            'locale' => $lang->getLocale(),
-            'lang_code' => $lang->getCode(),
-            'lang_id' => $lang->getId(),
+            'locale' => $lang?->getLocale(),
+            'lang_code' => $lang?->getCode(),
+            'lang_id' => $lang?->getId(),
             'current_url' => $this->getRequest()?->getUri(),
             'app' => (object) [
                 'environment' => $this->env,
