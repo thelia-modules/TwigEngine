@@ -12,7 +12,7 @@
 
 namespace TwigEngine\Extension;
 
-use Thelia\Service\Model\AttributeService;
+use Thelia\Domain\Catalog\Attribute\AttributeService;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
 

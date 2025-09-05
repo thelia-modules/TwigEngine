@@ -20,7 +20,7 @@ use Thelia\Model\ProductPriceQuery;
 use Thelia\Model\ProductSaleElementsQuery;
 use Thelia\Model\AttributeAvQuery;
 use Thelia\Model\AttributeQuery;
-use Thelia\TaxEngine\TaxEngine;
+use Thelia\Domain\Taxation\TaxEngine\TaxEngine;
 use TheliaSmarty\Events\PseByProductEvent;
 use Thelia\Model\Lang;
 

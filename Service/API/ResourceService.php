@@ -12,11 +12,10 @@
 
 namespace TwigEngine\Service\API;
 
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RouterInterface;
 use Thelia\Api\Resource\TranslatableResourceInterface;
-use Thelia\Service\Model\LangService;
+use Thelia\Domain\Localization\Service\LangService;
 
 readonly class ResourceService
 {
