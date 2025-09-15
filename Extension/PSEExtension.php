@@ -12,9 +12,9 @@
 
 namespace TwigEngine\Extension;
 
+use Thelia\Api\Service\DataAccess\ProductSaleElementsAccessService;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
-use TwigEngine\Service\DataAccess\ProductSaleElementsAccessService;
 
 class PSEExtension extends AbstractExtension
 {
