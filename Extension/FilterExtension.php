@@ -24,7 +24,7 @@ class FilterExtension extends AbstractExtension
             if (is_array($filter)) {
                 $count += $this->getFiltersCount($filter);
             } else {
-                if (!empty($filter)) {
+                if (!empty($filter) && $filter !== '') {
                     $count++;
                 }
             }
