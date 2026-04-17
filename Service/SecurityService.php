@@ -13,6 +13,7 @@
 namespace TwigEngine\Service;
 
 use Propel\Runtime\Exception\PropelException;
+use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Thelia\Core\HttpFoundation\Session\Session;
@@ -26,6 +27,7 @@ use Thelia\Exception\OrderException;
 use Thelia\Model\AddressQuery;
 use Thelia\Model\ModuleQuery;
 
+#[AsAlias(id: FrontSecurityServiceInterface::class, public: true)]
 class SecurityService implements FrontSecurityServiceInterface
 {
     public function __construct(
