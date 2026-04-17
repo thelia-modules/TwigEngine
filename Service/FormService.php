@@ -12,16 +12,19 @@
 
 namespace TwigEngine\Service;
 
+use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormView;
+use Thelia\Core\Form\FormServiceInterface;
 use Thelia\Core\Form\TheliaFormFactory;
 use Thelia\Core\Template\Element\Exception\ElementNotFoundException;
 use Thelia\Core\Template\ParserContext;
 use Symfony\Component\Form\Form;
 
-class FormService
+#[AsAlias(id: FormServiceInterface::class, public: true)]
+class FormService implements FormServiceInterface
 {
     /**
      * @throws \Exception
