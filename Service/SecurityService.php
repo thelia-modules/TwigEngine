@@ -18,6 +18,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Thelia\Core\HttpFoundation\Session\Session;
 use Thelia\Core\Security\Exception\AuthenticationException;
 use Thelia\Core\Security\Exception\AuthorizationException;
+use Thelia\Core\Security\Front\FrontSecurityServiceInterface;
 use Thelia\Core\Security\SecurityContext;
 use Thelia\Core\Template\Parser\ParserResolver;
 use Thelia\Core\Template\TemplateDefinition;
@@ -25,7 +26,7 @@ use Thelia\Exception\OrderException;
 use Thelia\Model\AddressQuery;
 use Thelia\Model\ModuleQuery;
 
-class SecurityService
+class SecurityService implements FrontSecurityServiceInterface
 {
     public function __construct(
         protected RequestStack $requestStack,
