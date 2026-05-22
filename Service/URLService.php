@@ -37,13 +37,9 @@ readonly class URLService
             // Symfony route (profiler)
             return '';
         }
-        $defaultRouter = null;
-        // select default router
-        if ($this->getRequest()->fromAdmin()) {
-            $defaultRouter = 'admin';
-        } elseif ($this->getRequest()->fromFront()) {
-            $defaultRouter = 'front';
-        }
+        // select default router based on the request path; fromAdmin()/fromFront()
+        // rely on Request::$controllerType which is never populated automatically.
+        $defaultRouter = str_starts_with($this->getRequest()->getPathInfo(), '/admin') ? 'admin' : 'front';
         $path = $params['path'] ?? null;
         $current = $params['router'] ?? false;
         $routerId = $params['router'] ?? $defaultRouter;
