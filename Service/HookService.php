@@ -23,6 +23,7 @@ readonly class HookService
         private bool $kernelDebug,
         private EventDispatcherInterface $dispatcher,
         private TwigParser $twigParser,
+        private LegacyHookAliases $legacyAliases,
     ) {
     }
 
@@ -33,17 +34,34 @@ readonly class HookService
         string $hookName,
         array $parameters,
     ): string {
+        $type = $this->twigParser->getTemplateDefinition()?->getType();
+        $content = $this->dispatchHook($type, $hookName, $parameters);
+
+        foreach ($this->legacyAliases->aliasesFor($hookName) as $alias) {
+            $content .= $this->dispatchHook($type, $alias['name'], $this->buildAliasParams($parameters, $alias));
+        }
+
+        if ($this->kernelDebug && $this->twigParser->getRequest()?->get('SHOW_HOOK')) {
+            $content = $this->showHook(
+                $hookName,
+                $parameters,
+                $this->twigParser->getTwig()->getGlobals()
+            ).$content;
+        }
+
+        return $content;
+    }
+
+    private function dispatchHook(?string $type, string $hookName, array $parameters): string
+    {
         $module = $parameters['module'] ?? 0;
         $moduleCode = $parameters['modulecode'] ?? '';
 
-        $type = $this->twigParser->getTemplateDefinition()?->getType();
         $event = new HookRenderEvent($hookName, $parameters, $this->twigParser->getTwig()->getGlobals());
-
         $event->setArguments($this->getArgumentsFromParams($parameters));
 
         $eventName = sprintf('hook.%s.%s', $type, $hookName);
 
-        // this is a hook specific to a module
         if (0 === $module
             && '' !== $moduleCode
             && null !== $mod = ModuleQuery::create()->findOneByCode($moduleCode)) {
@@ -54,16 +72,27 @@ readonly class HookService
         }
 
         $this->dispatcher->dispatch($event, $eventName);
-        $content = trim($event->dump());
-        if ($this->kernelDebug && $this->twigParser->getRequest()?->get('SHOW_HOOK')) {
-            $content = $this->showHook(
-                $hookName,
-                $parameters,
-                $this->twigParser->getTwig()->getGlobals()
-            ).$content;
+
+        return trim($event->dump());
+    }
+
+    /**
+     * @param array<string, mixed>                                                                    $parameters
+     * @param array{name: string, params?: array<string, scalar>, paramRemap?: array<string, string>} $alias
+     *
+     * @return array<string, mixed>
+     */
+    private function buildAliasParams(array $parameters, array $alias): array
+    {
+        $params = $parameters;
+
+        foreach ($alias['paramRemap'] ?? [] as $sourceKey => $targetKey) {
+            if (\array_key_exists($sourceKey, $params)) {
+                $params[$targetKey] = $params[$sourceKey];
+            }
         }
 
-        return $content;
+        return array_merge($params, $alias['params'] ?? []);
     }
 
     protected function showHook(string $hookName, array $parameters, array $templateVars): string
