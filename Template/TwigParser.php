@@ -56,16 +56,17 @@ class TwigParser implements ParserInterface
         }
 
         $lang = $this->langService->getLang();
+        $request = $this->getRequest();
 
         $parameters = array_merge($parameters, [
             'locale' => $lang?->getLocale(),
             'lang_code' => $lang?->getCode(),
             'lang_id' => $lang?->getId(),
-            'current_url' => $this->getRequest()?->getUri(),
+            'current_url' => $request?->getUri(),
             'app' => (object) [
                 'environment' => $this->env,
-                'request' => $this->getRequest(),
-                'session' => $this->getRequest()?->getSession(),
+                'request' => $request,
+                'session' => $request?->hasSession() ? $request->getSession() : null,
                 'debug' => $this->debug,
             ],
         ]);
