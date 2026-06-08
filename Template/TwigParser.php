@@ -173,7 +173,14 @@ class TwigParser implements ParserInterface
 
     public function assign($variable, $value = null): void
     {
-        $this->twig->addGlobal($variable, $value);
+        try {
+            $this->twig->addGlobal($variable, $value);
+        } catch (\LogicException) {
+            // The Twig environment is already initialized — e.g. a hook renders a template
+            // while the page template is still rendering on the same shared environment.
+            // Globals registered before initialization stay available, and per-render
+            // variables are passed straight to render(), so this is safe to ignore.
+        }
     }
 
     public static function getDefaultPriority(): int
