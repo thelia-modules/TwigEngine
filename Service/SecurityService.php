@@ -40,7 +40,7 @@ class SecurityService implements FrontSecurityServiceInterface
     public function isAuthenticated(): bool
     {
         $type = ParserResolver::getCurrentParser()?->getTemplateDefinition()?->getType();
-        return $type === TemplateDefinition::BACK_OFFICE ? $this->isAuthenticatedFront() : $this->isAuthenticatedAdmin();
+        return $type === TemplateDefinition::BACK_OFFICE ? $this->isAuthenticatedAdmin() : $this->isAuthenticatedFront();
     }
 
     public function isAuthenticatedFront(): bool
