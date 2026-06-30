@@ -41,7 +41,8 @@ readonly class HookService
             $content .= $this->dispatchHook($type, $alias['name'], $this->buildAliasParams($parameters, $alias));
         }
 
-        if ($this->kernelDebug && $this->twigParser->getRequest()?->get('SHOW_HOOK')) {
+        $request = $this->twigParser->getRequest();
+        if ($this->kernelDebug && $request !== null && $request->attributes->get('SHOW_HOOK', $request->query->get('SHOW_HOOK', $request->request->get('SHOW_HOOK')))) {
             $content = $this->showHook(
                 $hookName,
                 $parameters,
