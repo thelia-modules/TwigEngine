@@ -18,8 +18,6 @@ use Thelia\Core\Security\Exception\AuthenticationException;
 use Thelia\Core\Security\Exception\AuthorizationException;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFunction;
-use TwigEngine\Service\DataAccess\AttributeAccessService;
-use TwigEngine\Service\DataAccess\DataAccessService;
 use TwigEngine\Service\SecurityService;
 
 class SecurityExtension extends AbstractExtension
