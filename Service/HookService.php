@@ -13,7 +13,9 @@
 namespace TwigEngine\Service;
 
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Thelia\Core\Event\Hook\HookRenderBlockEvent;
 use Thelia\Core\Event\Hook\HookRenderEvent;
+use Thelia\Core\Hook\FragmentBag;
 use Thelia\Model\ModuleQuery;
 use TwigEngine\Template\TwigParser;
 
@@ -51,6 +53,40 @@ readonly class HookService
         }
 
         return $content;
+    }
+
+    /**
+     * Renders a block hook ({@see HookRenderBlockEvent}), the counterpart of the Smarty
+     * {hookblock}/{forhook}. Like processHookFunction(), the hook type is taken from the active
+     * template definition, so a PDF template gets pdf-type block hooks, an email template email-type,
+     * etc. Returns the fragments to iterate in the template.
+     *
+     * @param array<string, mixed> $parameters
+     */
+    public function processHookBlock(string $hookName, array $parameters): FragmentBag
+    {
+        $type = $this->twigParser->getTemplateDefinition()?->getType();
+
+        $module = $parameters['module'] ?? 0;
+        $moduleCode = $parameters['modulecode'] ?? '';
+
+        $event = new HookRenderBlockEvent($hookName, $parameters, [], $this->twigParser->getTwig()->getGlobals());
+        $event->setArguments($this->getArgumentsFromParams($parameters));
+
+        $eventName = sprintf('hook.%s.%s', $type, $hookName);
+
+        if (0 === $module
+            && '' !== $moduleCode
+            && null !== $mod = ModuleQuery::create()->findOneByCode($moduleCode)) {
+            $module = $mod->getId();
+        }
+        if (0 !== $module) {
+            $eventName .= '.'.$module;
+        }
+
+        $this->dispatcher->dispatch($event, $eventName);
+
+        return $event->get();
     }
 
     private function dispatchHook(?string $type, string $hookName, array $parameters): string

@@ -27,6 +27,7 @@ class HookExtension extends AbstractExtension
     {
         return [
             new TwigFunction('hook', [$this, 'hook'], ['is_safe' => ['html']]),
+            new TwigFunction('hook_block', [$this, 'hookBlock']),
         ];
     }
 
@@ -36,5 +37,15 @@ class HookExtension extends AbstractExtension
     public function hook(string $hookName, array $parameters = []): string
     {
         return $this->hookService->processHookFunction($hookName, $parameters);
+    }
+
+    /**
+     * Block hook (Smarty {hookblock}/{forhook}): returns the fragments to iterate.
+     *
+     * @param array<string, mixed> $parameters
+     */
+    public function hookBlock(string $hookName, array $parameters = []): \Thelia\Core\Hook\FragmentBag
+    {
+        return $this->hookService->processHookBlock($hookName, $parameters);
     }
 }
