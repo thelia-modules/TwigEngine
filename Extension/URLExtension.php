@@ -29,7 +29,21 @@ class URLExtension extends AbstractExtension
     {
         return [
             new TwigFunction('path', [$this, 'path']),
+            new TwigFunction('thelia_url', [$this, 'theliaUrl']),
         ];
+    }
+
+    /**
+     * {{ thelia_url('/customer/confirm/%token', {token: t}) }}
+     *
+     * Builds an absolute URL from a raw path, the Twig counterpart of the Smarty {url path=...} plugin.
+     * CLI-safe (no Request, no named router), so it works for emails/PDFs rendered from a worker or console.
+     *
+     * @param array<string, mixed> $parameters
+     */
+    public function theliaUrl(string $path = '', array $parameters = []): string
+    {
+        return $this->URLService->generateFromPath($path, $parameters);
     }
 
     public function path(string $routeId, array $parameters = []): string

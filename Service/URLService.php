@@ -133,6 +133,38 @@ readonly class URLService
         return $url;
     }
 
+    /**
+     * Build an absolute URL from a raw path, the CLI-safe counterpart of the Smarty {url path=...} plugin.
+     *
+     * Unlike generateUrlFunction(), this never touches the current Request nor a named router: it relies
+     * only on URL::getInstance()->absoluteUrl() (which uses the configured request context host + url_site),
+     * so it works when a mail or PDF is rendered outside an HTTP request (worker, cron, console).
+     * %placeholders in the path are substituted from $params, remaining params become the query string.
+     *
+     * @param array<string, mixed> $params
+     */
+    public function generateFromPath(string $path, array $params = []): string
+    {
+        $file = $params['file'] ?? null;
+        $baseUrl = $params['base_url'] ?? null;
+
+        if ($file !== null) {
+            $path = (string) $file;
+            $mode = URL::PATH_TO_FILE;
+        } else {
+            $mode = URL::WITH_INDEX_PAGE;
+        }
+
+        $excludeParams = $this->resolvePath($params, $path);
+
+        return URL::getInstance()->absoluteUrl(
+            $path,
+            $this->getArgsFromParam($params, array_merge(['noamp', 'path', 'file', 'target', 'base_url'], $excludeParams)),
+            $mode,
+            $baseUrl
+        );
+    }
+
     protected function resolvePath(array &$params, &$path): array
     {
         $placeholder = [];
