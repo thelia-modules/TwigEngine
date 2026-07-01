@@ -140,7 +140,18 @@ class TwigParser implements ParserInterface
 
     public function renderString($templateText, array $parameters = [], $compressOutput = true): string
     {
-        return $this->twig->render($templateText, $parameters);
+        // Render the given string as an inline template (Smarty's renderString contract),
+        // e.g. a mail subject or a back-office-edited message body stored in database.
+        // The previous implementation treated the string as a template name, which only
+        // worked for callers that happened to pass a name; use createTemplate() so an actual
+        // template source is compiled and rendered against the assigned globals + parameters.
+        // A null/empty source (e.g. a message with no subject in database) renders to an
+        // empty string, as the Smarty parser does, rather than raising a TypeError.
+        if (null === $templateText || '' === $templateText) {
+            return '';
+        }
+
+        return $this->twig->createTemplate($templateText)->render($parameters);
     }
 
     /**
