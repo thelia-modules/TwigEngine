@@ -14,6 +14,7 @@ namespace TwigEngine\Template;
 
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Thelia\Core\Template\Exception\ResourceNotFoundException;
 use Thelia\Core\Template\ParserContext;
 use Thelia\Core\Template\ParserInterface;
 use Thelia\Core\Template\ParserTemplateTrait;
@@ -50,9 +51,13 @@ class TwigParser implements ParserInterface
 
     public function render($realTemplateName, array $parameters = [], $compressOutput = true): string
     {
-        if (!str_ends_with($realTemplateName, '.'.$this->getFileExtension())) {
-            $realTemplateName = (string) pathinfo($realTemplateName, \PATHINFO_FILENAME);
-            $realTemplateName .= '.'.$this->getFileExtension();
+        $realTemplateName = $this->resolveTemplateName($realTemplateName);
+
+        if (!$this->loader->exists($realTemplateName)) {
+            // Same contract as the Smarty parser: a missing template raises a
+            // ResourceNotFoundException (which callers such as Message catch to fall back),
+            // rather than a raw Twig LoaderError.
+            throw new ResourceNotFoundException(sprintf('Template file %s cannot be found.', $realTemplateName));
         }
 
         $lang = $this->langService->getLang();
@@ -89,12 +94,48 @@ class TwigParser implements ParserInterface
             $templatePath .= DS;
         }
 
-        return file_exists($templatePath.$templateName.'.'.$this->getFileExtension());
+        foreach ($this->getFileExtensions() as $fileExtension) {
+            if (file_exists($templatePath.$templateName.'.'.$fileExtension)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function getFileExtension(): string
     {
         return 'html.twig';
+    }
+
+    /**
+     * Extensions handled by the Twig parser: HTML templates (front, back office, HTML
+     * emails, PDF) and text templates (the .txt version of an email).
+     *
+     * @return list<string>
+     */
+    public function getFileExtensions(): array
+    {
+        return ['html.twig', 'txt.twig'];
+    }
+
+    /**
+     * Map a requested template name to its Twig file, preserving the logical extension:
+     * a name ending in ".txt" resolves to a ".txt.twig" file, anything else (".html", no
+     * extension, …) to a ".html.twig" file. A name already carrying a handled extension is
+     * left untouched.
+     */
+    private function resolveTemplateName(string $realTemplateName): string
+    {
+        foreach ($this->getFileExtensions() as $fileExtension) {
+            if (str_ends_with($realTemplateName, '.'.$fileExtension)) {
+                return $realTemplateName;
+            }
+        }
+
+        $twigExtension = str_ends_with($realTemplateName, '.txt') ? 'txt.twig' : 'html.twig';
+
+        return pathinfo($realTemplateName, \PATHINFO_FILENAME).'.'.$twigExtension;
     }
 
     public function renderString($templateText, array $parameters = [], $compressOutput = true): string
