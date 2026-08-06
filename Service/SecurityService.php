@@ -62,7 +62,7 @@ class SecurityService implements FrontSecurityServiceInterface
         array $resources = [],
         array $modules = [],
         array $accesses = [],
-        string $loginTemplate = null
+        ?string $loginTemplate = null
     ): void {
         if ($this->securityContext->isGranted($roles, $resources, $modules, $accesses)) {
             return;
