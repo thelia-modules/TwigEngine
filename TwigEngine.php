@@ -44,7 +44,7 @@ class TwigEngine extends BaseModule
      * @param $newVersion
      * @param ConnectionInterface $con
      */
-    public function update($currentVersion, $newVersion, ConnectionInterface $con = null): void
+    public function update($currentVersion, $newVersion, ?ConnectionInterface $con = null): void
     {
         $updateDir = __DIR__.DS.'Config'.DS.'update';
 
