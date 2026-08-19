@@ -38,6 +38,9 @@ class TwigParser implements ParserInterface
 
     private array $templateDirectories = [];
 
+    /** @var array<string, array{list<string>, list<string>}> */
+    private array $themeChainCache = [];
+
     public function __construct(
         private readonly Environment $twig,
         #[Autowire(service: 'twig.loader.native_filesystem')]
@@ -90,17 +93,79 @@ class TwigParser implements ParserInterface
         if ($templateName === null) {
             $templateName = 'index';
         }
-        if (!str_ends_with($templatePath, DS)) {
-            $templatePath .= DS;
-        }
 
-        foreach ($this->getFileExtensions() as $fileExtension) {
-            if (file_exists($templatePath.$templateName.'.'.$fileExtension)) {
-                return true;
+        foreach ($this->getTemplateSearchDirectories($templatePath) as $directory) {
+            foreach ($this->getFileExtensions() as $fileExtension) {
+                if (file_exists($directory.DS.$templateName.'.'.$fileExtension)) {
+                    return true;
+                }
             }
         }
 
         return false;
+    }
+
+    /**
+     * The directories a template may be loaded from, in the order setTemplateDefinition()
+     * fills the Twig loader: the theme itself, the themes it inherits from, then the
+     * directories the modules contribute to each of them.
+     *
+     * Looking only at the theme directory would make the parser claim it cannot render a
+     * view that a module ships - a module template is a default the theme may override,
+     * not a file the theme has to provide.
+     *
+     * @return list<string>
+     */
+    private function getTemplateSearchDirectories(string $templatePath): array
+    {
+        $templatePath = rtrim($templatePath, DS);
+
+        $type = array_search(basename(\dirname($templatePath)), TemplateDefinition::$standardTemplatesSubdirs, true);
+
+        if (!\is_int($type)) {
+            return [$templatePath];
+        }
+
+        [$directories, $themeNames] = $this->getThemeChain($templatePath, $type);
+
+        foreach ($themeNames as $themeName) {
+            foreach ($this->templateDirectories[$type][$themeName] ?? [] as $moduleTemplateDirectory) {
+                $directories[] = rtrim($moduleTemplateDirectory, DS);
+            }
+        }
+
+        return $directories;
+    }
+
+    /**
+     * The theme and the themes it inherits from, as directories and as names. Resolving the
+     * parents reads and parses the theme descriptors, so the chain is resolved once per theme:
+     * a template lookup happens on every rendered view, and on every candidate parser.
+     *
+     * @return array{list<string>, list<string>}
+     */
+    private function getThemeChain(string $templatePath, int $type): array
+    {
+        if (isset($this->themeChainCache[$templatePath])) {
+            return $this->themeChainCache[$templatePath];
+        }
+
+        $directories = [$templatePath];
+        $themeNames = [basename($templatePath)];
+
+        try {
+            foreach ((new TemplateDefinition($themeNames[0], $type))->getParentList() ?? [] as $parentTemplateDefinition) {
+                $directories[] = rtrim($parentTemplateDefinition->getAbsolutePath(), DS);
+                $themeNames[] = $parentTemplateDefinition->getName();
+            }
+        } catch (\Throwable) {
+            // Reading a theme descriptor goes through Tlog, hence the Propel models, so it
+            // does more than read a file: outside a booted kernel it fails outright. A theme
+            // whose descriptor cannot be read simply has no parent chain to walk - its own
+            // directory and the modules registered for it are all there is to search.
+        }
+
+        return $this->themeChainCache[$templatePath] = [$directories, $themeNames];
     }
 
     public function getFileExtension(): string

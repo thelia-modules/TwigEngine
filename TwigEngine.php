@@ -32,6 +32,8 @@ class TwigEngine extends BaseModule
                 __DIR__.'/I18n',
                 __DIR__.'/I18n/*',
                 __DIR__.'/I18n/**/*',
+                __DIR__.'/tests',
+                __DIR__.'/tests/*',
             ])
             ->autowire(true)
             ->autoconfigure(true);
