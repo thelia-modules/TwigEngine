@@ -41,6 +41,18 @@ class TwigParser implements ParserInterface
     /** @var array<string, array{list<string>, list<string>}> */
     private array $themeChainCache = [];
 
+    /**
+     * The variables handed over through assign(), merged into every render.
+     *
+     * Twig globals only take new entries until the environment is initialized, i.e. until the
+     * first render of the request. Anything assigned afterwards - the second email sent while
+     * handling one request, a hook rendered in the middle of a page - would otherwise be lost
+     * in silence, the template reading null where the caller set a value.
+     *
+     * @var array<string, mixed>
+     */
+    private array $assignedVariables = [];
+
     public function __construct(
         private readonly Environment $twig,
         #[Autowire(service: 'twig.loader.native_filesystem')]
@@ -85,7 +97,7 @@ class TwigParser implements ParserInterface
             $this->assign($variableName, $variableValue);
         }
 
-        return $this->twig->render($realTemplateName, $parameters);
+        return $this->twig->render($realTemplateName, $this->withAssignedVariables($parameters));
     }
 
     public function supportTemplateRender(string $templatePath, ?string $templateName): bool
@@ -216,7 +228,7 @@ class TwigParser implements ParserInterface
             return '';
         }
 
-        return $this->twig->createTemplate($templateText)->render($parameters);
+        return $this->twig->createTemplate($templateText)->render($this->withAssignedVariables($parameters));
     }
 
     /**
@@ -290,14 +302,35 @@ class TwigParser implements ParserInterface
 
     public function assign($variable, $value = null): void
     {
-        try {
-            $this->twig->addGlobal($variable, $value);
-        } catch (\LogicException) {
-            // The Twig environment is already initialized — e.g. a hook renders a template
-            // while the page template is still rendering on the same shared environment.
-            // Globals registered before initialization stay available, and per-render
-            // variables are passed straight to render(), so this is safe to ignore.
+        $variables = \is_array($variable) ? $variable : [$variable => $value];
+
+        foreach ($variables as $variableName => $variableValue) {
+            $this->assignedVariables[$variableName] = $variableValue;
+
+            try {
+                // Registered as a global too while the environment still accepts them, so the
+                // variable also reaches the places a render context does not: macros and
+                // templates included with "only".
+                $this->twig->addGlobal($variableName, $variableValue);
+            } catch (\LogicException) {
+                // The environment is already initialized - a hook rendering a template while
+                // the page is still rendering, a second email in the same request. The
+                // variable is carried by the render context instead, see withAssignedVariables().
+            }
         }
+    }
+
+    /**
+     * The render context: what was assigned so far, the parameters of this render winning
+     * over it, as they would over a global.
+     *
+     * @param array<string, mixed> $parameters
+     *
+     * @return array<string, mixed>
+     */
+    private function withAssignedVariables(array $parameters): array
+    {
+        return array_merge($this->assignedVariables, $parameters);
     }
 
     public static function getDefaultPriority(): int
