@@ -161,6 +161,46 @@ class TwigParserSupportTemplateRenderTest extends TestCase
         $this->assertTrue($parser->supportTemplateRender($this->emailThemeDirectory(), 'order-confirmation'));
     }
 
+    public function testANameCarryingItsFinalExtensionIsMappedToItsTwigFile(): void
+    {
+        $parser = $this->createParser();
+
+        mkdir($this->emailThemeDirectory(), 0o777, true);
+        touch($this->emailThemeDirectory().DS.'order-confirmation.txt.twig');
+
+        $this->assertTrue($parser->supportTemplateRender($this->emailThemeDirectory(), 'order-confirmation.txt'));
+    }
+
+    public function testAnHtmlNameIsMappedToItsTwigFile(): void
+    {
+        $parser = $this->createParser();
+
+        touch($this->themeDirectory().DS.'page.html.twig');
+
+        $this->assertTrue($parser->supportTemplateRender($this->themeDirectory(), 'page.html'));
+    }
+
+    public function testANameAlreadyCarryingItsTwigExtensionIsRenderableAsIs(): void
+    {
+        $parser = $this->createParser();
+
+        touch($this->themeDirectory().DS.'page.html.twig');
+
+        $this->assertTrue($parser->supportTemplateRender($this->themeDirectory(), 'page.html.twig'));
+    }
+
+    public function testANameIsNotClaimedWhenTheOnlyMatchingFileAppendsAnExtensionToIt(): void
+    {
+        $parser = $this->createParser();
+
+        // What render() looks for is "file.txt.twig": a file named after the requested name
+        // plus an extension is not the file it would load, so the view is not renderable.
+        touch($this->themeDirectory().DS.'file.txt.html.twig');
+
+        $this->assertFileDoesNotExist($this->themeDirectory().DS.'file.txt.twig');
+        $this->assertFalse($parser->supportTemplateRender($this->themeDirectory(), 'file.txt'));
+    }
+
     private function createParser(): TwigParser
     {
         $parser = new TwigParser(
