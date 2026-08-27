@@ -107,14 +107,41 @@ class TwigParser implements ParserInterface
         }
 
         foreach ($this->getTemplateSearchDirectories($templatePath) as $directory) {
-            foreach ($this->getFileExtensions() as $fileExtension) {
-                if (file_exists($directory.DS.$templateName.'.'.$fileExtension)) {
+            foreach ($this->getCandidateFileNames($templateName) as $fileName) {
+                if (file_exists($directory.DS.$fileName)) {
                     return true;
                 }
             }
         }
 
         return false;
+    }
+
+    /**
+     * The files render() may serve the requested name from.
+     *
+     * A name carrying an extension is mapped the way render() maps it, so that detection and
+     * rendering agree on it: "file.txt" is renderable when "file.txt.twig" exists, and is not
+     * when only "file.txt.html.twig" does - render() never looks for the latter. Appending
+     * the extensions to such a name instead made the parser reject a view it renders, and
+     * claim one it does not.
+     *
+     * A bare view name is the one case where several files answer, because the name the
+     * resolver is asked about is not yet the name render() will be given: a message resolves
+     * a parser under its view name, then renders its ".html" and its ".txt" file.
+     *
+     * @return list<string>
+     */
+    private function getCandidateFileNames(string $templateName): array
+    {
+        if ('' !== pathinfo($templateName, \PATHINFO_EXTENSION)) {
+            return [$this->resolveTemplateName($templateName)];
+        }
+
+        return array_map(
+            static fn (string $fileExtension): string => $templateName.'.'.$fileExtension,
+            $this->getFileExtensions()
+        );
     }
 
     /**
