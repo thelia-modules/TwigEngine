@@ -234,6 +234,10 @@ class TwigParser implements ParserInterface
      * a name ending in ".txt" resolves to a ".txt.twig" file, anything else (".html", no
      * extension, …) to a ".html.twig" file. A name already carrying a handled extension is
      * left untouched.
+     *
+     * The directory of the name is part of it: templates are loaded relatively to the
+     * directories the loader is filled with, so "coupon/fragment.html" is the file
+     * "coupon/fragment.html.twig", never "fragment.html.twig" at the root of a theme.
      */
     private function resolveTemplateName(string $realTemplateName): string
     {
@@ -245,7 +249,16 @@ class TwigParser implements ParserInterface
 
         $twigExtension = str_ends_with($realTemplateName, '.txt') ? 'txt.twig' : 'html.twig';
 
-        return pathinfo($realTemplateName, \PATHINFO_FILENAME).'.'.$twigExtension;
+        // The extension is stripped in place rather than the name rebuilt from its parts:
+        // pathinfo(PATHINFO_FILENAME) keeps the basename alone, which turned every nested
+        // name into a lookup at the root of the search directories - two nested templates
+        // sharing a basename resolved to the same file.
+        $extension = pathinfo($realTemplateName, \PATHINFO_EXTENSION);
+        $nameWithoutExtension = '' === $extension
+            ? $realTemplateName
+            : substr($realTemplateName, 0, -(\strlen($extension) + 1));
+
+        return $nameWithoutExtension.'.'.$twigExtension;
     }
 
     public function renderString($templateText, array $parameters = [], $compressOutput = true): string
