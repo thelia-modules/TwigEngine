@@ -120,7 +120,7 @@ class TwigParser implements ParserInterface
     /**
      * The directories a template may be loaded from, in the order setTemplateDefinition()
      * fills the Twig loader: the theme itself, the themes it inherits from, then the
-     * directories the modules contribute to each of them.
+     * directories the modules contribute to each of them and to the default theme.
      *
      * Looking only at the theme directory would make the parser claim it cannot render a
      * view that a module ships - a module template is a default the theme may override,
@@ -140,13 +140,19 @@ class TwigParser implements ParserInterface
 
         [$directories, $themeNames] = $this->getThemeChain($templatePath, $type);
 
-        foreach ($themeNames as $themeName) {
+        // The directories modules contribute to the default theme: every caller resolving a
+        // parser sets the template definition with the fallback to the default theme enabled,
+        // so setTemplateDefinition() hands them to the loader too. A module shipping a view
+        // for the default theme therefore renders under any theme, and is claimed as such.
+        $themeNames[] = self::FALLBACK_DEFAULT_THEME_NAME;
+
+        foreach (array_unique($themeNames) as $themeName) {
             foreach ($this->templateDirectories[$type][$themeName] ?? [] as $moduleTemplateDirectory) {
                 $directories[] = rtrim($moduleTemplateDirectory, DS);
             }
         }
 
-        return $directories;
+        return array_values(array_unique($directories));
     }
 
     /**
