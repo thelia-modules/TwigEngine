@@ -85,6 +85,22 @@ class TwigParserSupportTemplateRenderTest extends TestCase
         $this->assertTrue($parser->supportTemplateRender($this->themeDirectory(), 'page'));
     }
 
+    public function testATemplateShippedByAModuleForTheDefaultThemeIsRenderable(): void
+    {
+        $parser = $this->createParser();
+        $parser->addTemplateDirectory(
+            TemplateDefinition::FRONT_OFFICE,
+            'default',
+            $this->moduleTemplateDirectory(),
+            'Page'
+        );
+
+        touch($this->moduleTemplateDirectory().DS.'page.html.twig');
+
+        $this->assertFileDoesNotExist($this->themeDirectory().DS.'page.html.twig');
+        $this->assertTrue($parser->supportTemplateRender($this->themeDirectory(), 'page'));
+    }
+
     public function testATemplateShippedByAModuleForAnotherThemeIsNotRenderable(): void
     {
         $parser = $this->createParser();
