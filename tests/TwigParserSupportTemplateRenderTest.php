@@ -4,6 +4,7 @@ namespace TwigEngine\Tests;
 
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Thelia\Core\Template\Exception\ResourceNotFoundException;
 use Thelia\Core\Template\ParserContext;
 use Thelia\Core\Template\TemplateDefinition;
 use Thelia\Core\Template\TemplateHelperInterface;
@@ -199,6 +200,58 @@ class TwigParserSupportTemplateRenderTest extends TestCase
 
         $this->assertFileDoesNotExist($this->themeDirectory().DS.'file.txt.twig');
         $this->assertFalse($parser->supportTemplateRender($this->themeDirectory(), 'file.txt'));
+    }
+
+    public function testANestedNameKeepsItsDirectory(): void
+    {
+        $parser = $this->createParser();
+
+        mkdir($this->themeDirectory().DS.'coupon', 0o777, true);
+        touch($this->themeDirectory().DS.'coupon'.DS.'fragment.html.twig');
+
+        $this->assertTrue($parser->supportTemplateRender($this->themeDirectory(), 'coupon/fragment.html'));
+    }
+
+    public function testANestedNameIsNotAnsweredByTheSameBasenameAtTheRootOfTheTheme(): void
+    {
+        $parser = $this->createParser();
+
+        touch($this->themeDirectory().DS.'fragment.html.twig');
+
+        $this->assertFileDoesNotExist($this->themeDirectory().DS.'coupon'.DS.'fragment.html.twig');
+        $this->assertFalse($parser->supportTemplateRender($this->themeDirectory(), 'coupon/fragment.html'));
+    }
+
+    public function testANestedTextTemplateKeepsItsDirectory(): void
+    {
+        $parser = $this->createParser();
+
+        mkdir($this->emailThemeDirectory().DS.'order', 0o777, true);
+        touch($this->emailThemeDirectory().DS.'order'.DS.'confirmation.txt.twig');
+
+        $this->assertTrue($parser->supportTemplateRender($this->emailThemeDirectory(), 'order/confirmation.txt'));
+    }
+
+    public function testABareNestedNameKeepsItsDirectory(): void
+    {
+        $parser = $this->createParser();
+
+        mkdir($this->themeDirectory().DS.'coupon', 0o777, true);
+        touch($this->themeDirectory().DS.'coupon'.DS.'fragment.html.twig');
+
+        $this->assertTrue($parser->supportTemplateRender($this->themeDirectory(), 'coupon/fragment'));
+    }
+
+    public function testRenderLoadsTheNestedFileTheNameDesignates(): void
+    {
+        $parser = $this->createParser();
+
+        // The loader holds no template at all, so the name render() asked it for is the one
+        // the exception reports: the nested file, not its basename at the root.
+        $this->expectException(ResourceNotFoundException::class);
+        $this->expectExceptionMessage('Template file coupon/fragment.html.twig cannot be found.');
+
+        $parser->render('coupon/fragment.html');
     }
 
     private function createParser(): TwigParser
