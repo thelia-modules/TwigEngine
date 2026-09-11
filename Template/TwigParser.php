@@ -22,6 +22,7 @@ use Thelia\Core\Template\TemplateDefinition;
 use Thelia\Domain\Localization\Service\LangService;
 use Twig\Environment;
 use Twig\Error\LoaderError;
+use Twig\Extension\SandboxExtension;
 use Twig\Loader\FilesystemLoader;
 
 /**
@@ -274,7 +275,27 @@ class TwigParser implements ParserInterface
             return '';
         }
 
-        return $this->twig->createTemplate($templateText)->render($this->withAssignedVariables($parameters));
+        // The source is not a theme file: it comes from wherever the caller got it, in practice
+        // the message table, i.e. the back-office. It is compiled under the Twig sandbox so that
+        // editing a message stays editing a message - see InlineTemplatePolicy for what that
+        // leaves available. The sandbox covers this render only; the theme files that render()
+        // compiles keep the full language.
+        $sandbox = $this->twig->hasExtension(SandboxExtension::class)
+            ? $this->twig->getExtension(SandboxExtension::class)
+            : null;
+
+        // A sandbox already on is left on: renderString() is called twice per message (subject,
+        // then body) and nothing says the caller did not open one around both.
+        $sandboxWasAlreadyOn = $sandbox?->isSandboxed() ?? false;
+        $sandbox?->enableSandbox();
+
+        try {
+            return $this->twig->createTemplate($templateText)->render($this->withAssignedVariables($parameters));
+        } finally {
+            if (null !== $sandbox && !$sandboxWasAlreadyOn) {
+                $sandbox->disableSandbox();
+            }
+        }
     }
 
     /**

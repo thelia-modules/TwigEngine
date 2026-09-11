@@ -7,6 +7,10 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ServicesConfigurat
 use Symfony\Component\Finder\Finder;
 use Thelia\Install\Database;
 use Thelia\Module\BaseModule;
+use Twig\Extension\SandboxExtension;
+use TwigEngine\Template\Security\InlineTemplatePolicy;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 class TwigEngine extends BaseModule
 {
@@ -37,6 +41,15 @@ class TwigEngine extends BaseModule
             ])
             ->autowire(true)
             ->autoconfigure(true);
+
+        // The sandbox has to be registered under Twig's own class name: a compiled template asks
+        // the environment for SandboxExtension::class, so a subclass would leave the sandbox
+        // unseen at render time. It is off by default and TwigParser::renderString() turns it on
+        // around the sources it compiles, so theme files are unaffected.
+        $servicesConfigurator
+            ->set(SandboxExtension::class)
+            ->args([service(InlineTemplatePolicy::class)])
+            ->tag('twig.extension');
     }
 
     /**
