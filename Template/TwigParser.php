@@ -19,7 +19,9 @@ use Thelia\Core\Template\ParserContext;
 use Thelia\Core\Template\ParserInterface;
 use Thelia\Core\Template\ParserTemplateTrait;
 use Thelia\Core\Template\TemplateDefinition;
+use Thelia\Domain\Localization\LocalizationFacade;
 use Thelia\Domain\Localization\Service\LangService;
+use Thelia\Domain\Localization\Service\LocaleDirection;
 use Twig\Environment;
 use Twig\Error\LoaderError;
 use Twig\Extension\SandboxExtension;
@@ -61,7 +63,12 @@ class TwigParser implements ParserInterface
         private readonly ParserContext $parserContext,
         private readonly LangService $langService,
         private readonly string $env = 'prod',
-        private readonly bool $debug = false
+        private readonly bool $debug = false,
+        // Last and optional so the four arguments this class already took keep their
+        // positions: a caller building a parser by hand - a test, a module - is not
+        // broken by the arrival of the writing direction. Left out, the parser
+        // publishes "ltr", which is what it published before the direction existed.
+        private readonly ?LocalizationFacade $localizationFacade = null,
     ) {
     }
 
@@ -82,6 +89,18 @@ class TwigParser implements ParserInterface
         $parameters = array_merge($parameters, [
             'locale' => $lang?->getLocale(),
             'lang_code' => $lang?->getCode(),
+            // "ltr" or "rtl", whatever the language: a template writes it straight into
+            // the dir attribute of its root element without knowing which languages are
+            // read right to left. Never null, even with no session at all, so a layout
+            // rendered from a console command still carries a direction.
+            //
+            // The same value is served by the lang_direction() function of this module,
+            // which is the one to call from a template: it is registered on the Twig
+            // environment and therefore answers everywhere, including where this
+            // variable was never assigned - a back-office controller rendering straight
+            // through Twig, a live component re-rendering itself, a macro. The variable
+            // is kept for the themes that already read it.
+            'lang_direction' => $this->localizationFacade?->getCurrentLangDirection() ?? LocaleDirection::LEFT_TO_RIGHT,
             'lang_id' => $lang?->getId(),
             'current_url' => $request?->getUri(),
             'app' => (object) [

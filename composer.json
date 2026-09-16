@@ -5,6 +5,7 @@
     "type": "thelia-module",
     "require": {
         "php": ">=8.2",
+        "thelia/core": "^3.2",
         "thelia/installer": "^1.6"
     },
     "extra": {
