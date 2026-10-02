@@ -5,7 +5,7 @@ namespace TwigEngine;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ServicesConfigurator;
 use Symfony\Component\Finder\Finder;
-use Thelia\Install\Database;
+use Thelia\Core\Install\Database;
 use Thelia\Module\BaseModule;
 use Twig\Extension\SandboxExtension;
 use TwigEngine\Template\Security\InlineTemplatePolicy;
