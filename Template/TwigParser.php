@@ -86,9 +86,12 @@ class TwigParser implements ParserInterface
         $lang = $this->langService->getLang();
         $request = $this->getRequest();
 
+        // The current language wins. Without one (no session: console, scheduled task) the
+        // language a caller assigned with assign() is the fallback, instead of null, so the
+        // translations of the template are not left to the default locale.
         $parameters = array_merge($parameters, [
-            'locale' => $lang?->getLocale(),
-            'lang_code' => $lang?->getCode(),
+            'locale' => $lang?->getLocale() ?? $this->assignedVariables['locale'] ?? null,
+            'lang_code' => $lang?->getCode() ?? $this->assignedVariables['lang_code'] ?? null,
             // "ltr" or "rtl", whatever the language: a template writes it straight into
             // the dir attribute of its root element without knowing which languages are
             // read right to left. Never null, even with no session at all, so a layout
@@ -101,7 +104,7 @@ class TwigParser implements ParserInterface
             // through Twig, a live component re-rendering itself, a macro. The variable
             // is kept for the themes that already read it.
             'lang_direction' => $this->localizationFacade?->getCurrentLangDirection() ?? LocaleDirection::LEFT_TO_RIGHT,
-            'lang_id' => $lang?->getId(),
+            'lang_id' => $lang?->getId() ?? $this->assignedVariables['lang_id'] ?? null,
             'current_url' => $request?->getUri(),
             'app' => (object) [
                 'environment' => $this->env,
