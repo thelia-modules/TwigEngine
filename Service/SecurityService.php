@@ -23,7 +23,7 @@ use Thelia\Core\Security\Front\FrontSecurityServiceInterface;
 use Thelia\Core\Security\SecurityContext;
 use Thelia\Core\Template\Parser\ParserResolver;
 use Thelia\Core\Template\TemplateDefinition;
-use Thelia\Exception\OrderException;
+use Thelia\Domain\Order\Exception\OrderException;
 use Thelia\Model\AddressQuery;
 use Thelia\Model\ModuleQuery;
 

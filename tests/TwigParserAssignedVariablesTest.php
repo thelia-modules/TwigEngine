@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Thelia\Core\Template\ParserContext;
 use Thelia\Core\Template\TemplateHelperInterface;
 use Thelia\Domain\Localization\Service\LangService;
+use Thelia\Model\Lang;
 use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 use TwigEngine\Template\TwigParser;
@@ -46,6 +47,7 @@ class TwigParserAssignedVariablesTest extends TestCase
 
         file_put_contents(self::$workingDirectory.DS.'first.html.twig', '{{ greeting }}');
         file_put_contents(self::$workingDirectory.DS.'second.html.twig', '{{ order_ref }}');
+        file_put_contents(self::$workingDirectory.DS.'language.html.twig', '{{ locale }} {{ lang_code }} {{ lang_id }}');
     }
 
     public static function tearDownAfterClass(): void
@@ -112,7 +114,41 @@ class TwigParserAssignedVariablesTest extends TestCase
         $this->assertSame('hello ORD000000000042', $parser->renderString('{{ greeting }} {{ order_ref }}'));
     }
 
-    private function createParser(): TwigParser
+    public function testTheLanguageAssignedByTheCallerIsKeptWhenThereIsNoCurrentLanguage(): void
+    {
+        $parser = $this->createParser();
+
+        $parser->assign('locale', 'de_DE');
+        $parser->assign('lang_code', 'de');
+        $parser->assign('lang_id', 2);
+
+        $this->assertSame('de_DE de 2', $parser->render('language'));
+    }
+
+    public function testTheCurrentLanguageWinsOverTheLanguageAssignedByTheCaller(): void
+    {
+        // Needs the Propel models of the shop (generated, not part of this module).
+        if (!class_exists(\Thelia\Model\Base\Lang::class)) {
+            $this->markTestSkipped('The generated Propel models are not available.');
+        }
+
+        $lang = new Lang();
+        $lang->setId(1);
+        $lang->setLocale('fr_FR');
+        $lang->setCode('fr');
+
+        $langService = $this->createMock(LangService::class);
+        $langService->method('getLang')->willReturn($lang);
+
+        $parser = $this->createParser($langService);
+        $parser->assign('locale', 'de_DE');
+        $parser->assign('lang_code', 'de');
+        $parser->assign('lang_id', 2);
+
+        $this->assertSame('fr_FR fr 1', $parser->render('language'));
+    }
+
+    private function createParser(?LangService $langService = null): TwigParser
     {
         $loader = new FilesystemLoader([self::$workingDirectory]);
 
@@ -123,7 +159,7 @@ class TwigParserAssignedVariablesTest extends TestCase
             new Environment($loader, ['cache' => false, 'strict_variables' => false]),
             $loader,
             $parserContext,
-            $this->createMock(LangService::class),
+            $langService ?? $this->createMock(LangService::class),
         );
 
         $parser->templateHelper = $this->createMock(TemplateHelperInterface::class);
