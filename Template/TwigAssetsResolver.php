@@ -157,7 +157,7 @@ class TwigAssetsResolver implements AssetResolverInterface
         $fileName = ltrim($fileName, DS);
 
         /* Navigating in the server's directory tree is not allowed :) */
-        if (preg_match('!\.\.'.DS.'!', $fileName)) {
+        if (preg_match('!\.\.'.preg_quote(DS, '!').'!', $fileName)) {
             // This time, we will not forgive.
             throw new \InvalidArgumentException('Relative paths are not allowed in assets names.');
         }
