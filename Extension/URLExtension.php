@@ -46,16 +46,24 @@ class URLExtension extends AbstractExtension
         return $this->URLService->generateFromPath($path, $parameters);
     }
 
-    public function path(string $routeId, array $parameters = []): string
+    /**
+     * {{ path('route_name', {id: 1}) }}
+     *
+     * Same contract as Symfony's path(): a path without scheme and host, or a path relative to
+     * the current one when $relative is true. Absolute URLs come from url() and thelia_url().
+     */
+    public function path(string $routeId, array $parameters = [], bool $relative = false): string
     {
+        $referenceType = $relative ? UrlGeneratorInterface::RELATIVE_PATH : UrlGeneratorInterface::ABSOLUTE_PATH;
+
         $url = '';
         try {
-            $url = $this->URLService->generateUrlFunction($routeId, $parameters);
+            $url = $this->URLService->generateUrlFunction($routeId, $parameters, $referenceType);
             $checkSymfonyRoutes = $url === '';
         } catch (\Exception) {
             $checkSymfonyRoutes = true;
         }
 
-        return $checkSymfonyRoutes ? $this->urlGenerator->generate($routeId, $parameters) : $url;
+        return $checkSymfonyRoutes ? $this->urlGenerator->generate($routeId, $parameters, $referenceType) : $url;
     }
 }

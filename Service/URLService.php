@@ -31,7 +31,11 @@ readonly class URLService
     ) {
     }
 
-    public function generateUrlFunction(string $routeId, array $params): string
+    /**
+     * $referenceType (a UrlGeneratorInterface constant) applies to router-generated URLs; the path
+     * and file modes always build an absolute URL.
+     */
+    public function generateUrlFunction(string $routeId, array $params, int $referenceType = UrlGeneratorInterface::ABSOLUTE_URL): string
     {
         if (!$this->getRequest() instanceof Request) {
             // Symfony route (profiler)
@@ -73,7 +77,7 @@ readonly class URLService
             $url = $router->generate(
                 $routeId,
                 $this->getArgsFromParam($params, ['route_id', 'router', 'base_url']),
-                UrlGeneratorInterface::ABSOLUTE_URL
+                $referenceType
             );
         } else {
             if ($file !== null) {
