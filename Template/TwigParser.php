@@ -24,8 +24,9 @@ use Thelia\Domain\Localization\Service\LangService;
 use Thelia\Domain\Localization\Service\LocaleDirection;
 use Twig\Environment;
 use Twig\Error\LoaderError;
-use Twig\Extension\SandboxExtension;
 use Twig\Loader\FilesystemLoader;
+use TwigEngine\Template\Security\InlineTemplatePolicy;
+use TwigEngine\Template\Security\InlineTemplateSandbox;
 
 /**
  * Class TwigParser.
@@ -69,6 +70,9 @@ class TwigParser implements ParserInterface
         // broken by the arrival of the writing direction. Left out, the parser
         // publishes "ltr", which is what it published before the direction existed.
         private readonly ?LocalizationFacade $localizationFacade = null,
+        // Optional for the same reason. A parser built by hand gets one built from its own
+        // environment, without the runtimes and formats the framework would have set.
+        private ?InlineTemplateSandbox $inlineTemplateSandbox = null,
     ) {
     }
 
@@ -298,26 +302,12 @@ class TwigParser implements ParserInterface
         }
 
         // The source is not a theme file: it comes from wherever the caller got it, in practice
-        // the message table, i.e. the back-office. It is compiled under the Twig sandbox so that
+        // the message table, i.e. the back-office. It is rendered under the Twig sandbox so that
         // editing a message stays editing a message - see InlineTemplatePolicy for what that
-        // leaves available. The sandbox covers this render only; the theme files that render()
-        // compiles keep the full language.
-        $sandbox = $this->twig->hasExtension(SandboxExtension::class)
-            ? $this->twig->getExtension(SandboxExtension::class)
-            : null;
+        // leaves available. The theme files that render() compiles keep the full language.
+        $this->inlineTemplateSandbox ??= new InlineTemplateSandbox($this->twig, new InlineTemplatePolicy());
 
-        // A sandbox already on is left on: renderString() is called twice per message (subject,
-        // then body) and nothing says the caller did not open one around both.
-        $sandboxWasAlreadyOn = $sandbox?->isSandboxed() ?? false;
-        $sandbox?->enableSandbox();
-
-        try {
-            return $this->twig->createTemplate($templateText)->render($this->withAssignedVariables($parameters));
-        } finally {
-            if (null !== $sandbox && !$sandboxWasAlreadyOn) {
-                $sandbox->disableSandbox();
-            }
-        }
+        return $this->inlineTemplateSandbox->render($templateText, $this->withAssignedVariables($parameters));
     }
 
     /**
