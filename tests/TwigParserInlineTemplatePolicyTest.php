@@ -10,6 +10,7 @@ use Thelia\Core\Template\TemplateHelperInterface;
 use Thelia\Domain\Localization\Service\LangService;
 use Twig\Environment;
 use Twig\Error\RuntimeError;
+use Twig\Extension\AbstractExtension;
 use Twig\Extension\SandboxExtension;
 use Twig\Loader\FilesystemLoader;
 use Twig\Sandbox\SecurityError;
@@ -143,7 +144,14 @@ class TwigParserInlineTemplatePolicyTest extends TestCase
 
         $twig = new Environment($loader, ['cache' => false, 'strict_variables' => false]);
         $twig->addExtension(new SandboxExtension(new InlineTemplatePolicy()));
-        $twig->addFunction(new TwigFunction('store_name', static fn (): string => 'Thelia'));
+        // Through an extension, as a theme or a module brings its functions: the sandbox
+        // environment is built from the extensions of the application one.
+        $twig->addExtension(new class extends AbstractExtension {
+            public function getFunctions(): array
+            {
+                return [new TwigFunction('store_name', static fn (): string => 'Thelia')];
+            }
+        });
 
         $parserContext = $this->createMock(ParserContext::class);
         $parserContext->method('getIterator')->willReturn(new \ArrayIterator([]));

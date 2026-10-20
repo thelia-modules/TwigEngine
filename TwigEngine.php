@@ -44,8 +44,9 @@ class TwigEngine extends BaseModule
 
         // The sandbox has to be registered under Twig's own class name: a compiled template asks
         // the environment for SandboxExtension::class, so a subclass would leave the sandbox
-        // unseen at render time. It is off by default and TwigParser::renderString() turns it on
-        // around the sources it compiles, so theme files are unaffected.
+        // unseen at render time. It is off by default. On Twig < 3.29, InlineTemplateSandbox turns
+        // it on around the sources TwigParser::renderString() compiles, so theme files are
+        // unaffected; from 3.29 on, those sources go through a sandboxed environment of their own.
         $servicesConfigurator
             ->set(SandboxExtension::class)
             ->args([service(InlineTemplatePolicy::class)])
